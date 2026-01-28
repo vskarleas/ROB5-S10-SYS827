@@ -22,6 +22,7 @@ fprintf('\nDH Modifiés du UR5\n');
 
 % Dimensions du UR5
 % source: https://www.universal-robots.com/articles/ur/application-installation/dh-parameters-for-calculations-of-kinematics-and-dynamics/
+% https://forum.universal-robots.com/t/denavit-hartenberg-parameters-for-ur5-classical-or-the-modified/21698/3 (verification que ca suit le DH classic)
 d1 = 0.089159;   % Distance axe 1-2
 a2 = -0.42500;   % Longueur du bras
 a3 = -0.39225;   % Longueur de l'avant-bras
@@ -69,7 +70,7 @@ T_toolbox = getTransform(robot, q_test, 'tool0');
 fprintf('\nMatrice de transformation T_06 (Robotics System Toolbox):\n');
 disp(T_toolbox);
 
-fprintf('\n On observe que les deux matrices de transformation sont identiques.\n');
+
 
 figure;
 show(robot, q_test); % pose est verifie sur la figure affichée
