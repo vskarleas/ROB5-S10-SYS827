@@ -79,7 +79,7 @@ fprintf('Matrice de rotation :\n');
 disp(T06(1:3, 1:3));
 
 %% =======================================
-% Model cinematique differentiel
+%% Model cinematique differentiel
 % ========================================
 
 % Liens symboliques
@@ -197,13 +197,84 @@ disp(double(Jv));
 
 
 %% =======================================
-% Model dynamique
+%% Model dynamique
 % ========================================
 
 % Le Robotics System Toolbox fournit :
 %   - massMatrix(robot, q)         -> M(q)        : matrice de masse (6x6)
 %   - velocityProduct(robot, q, qd) -> C(q,qd)*qd : forces centrifuges + Coriolis (1x6)
 %   - gravityTorque(robot, q)      -> g(q)         : couple de gravité (1x6)
+
+fprintf('\n========================================\n');
+fprintf('Modèle dynamique du UR5  avec le URDF\n');
+fprintf('========================================\n');
+
+
+% Matrice de masse M(q)
+M_q = massMatrix(robot, thetai');
+fprintf('Matrice de masse M(q) [6x6] :\n');
+disp(M_q);
+
+
+% Vérification de la propriété 5.1 : M symétrique et définie positive
+fprintf('Vérification Propriété 5.1 :\n');
+fprintf('  M est symétrique          : %s (erreur max = %.2e)\n', ...
+    mat2str(issymmetric(round(M_q, 10))), max(max(abs(M_q - M_q'))));
+eig_M = eig(M_q);
+
+fprintf('  M est définie positive    : %s (valeur propre min = %.6f)\n', ...
+    mat2str(all(eig_M > 0)), min(eig_M));
+fprintf('  Valeurs propres de M      : [%.6f, %.6f, %.6f, %.6f, %.6f, %.6f]\n\n', eig_M);
+
+
+
+% Vecteur des forces de Coriolis et centrifuges C(q,qdot)*qdot
+qdot_example = [0.1, -0.2, 0.15, -0.1, 0.05, 0.3]; % rad/s (exemple)
+
+C_qdot = velocityProduct(robot, thetai', qdot_example);
+fprintf('Forces de Coriolis + centrifuges C(q,qdot)*qdot [1x6] :\n');
+fprintf('  (pour qdot = [%.2f, %.2f, %.2f, %.2f, %.2f, %.2f] rad/s)\n', qdot_example);
+disp(C_qdot);
+
+
+% Vecteur de gravité G(q)
+G_q = gravityTorque(robot, thetai');
+fprintf('Couple de gravité G(q) [1x6] :\n');
+disp(G_q);
+
+
+
+% Couple total nécessaire pour maintenir la pose statique
+% En statique : q_ddot = 0, qdot = 0, donc tau = G(q)
+fprintf('Couple statique pour maintenir la pose (tau = G(q)) :\n');
+for j = 1:6
+    fprintf('  Joint %d : %.4f N·m\n', j, G_q(j));
+end
+
+%  Vérification Propriété 5.2 : M_dot - 2*Vm est antisymétrique
+% On vérifie numériquement en perturbant q légèrement pour estimer M_dot
+fprintf('\nVérification Propriété 5.2 (M_dot - 2*Vm antisymétrique)\n');
+epsilon = 1e-6;
+M_dot_approx = zeros(6,6);
+for j = 1:6
+    q_plus = thetai';
+    q_plus(j) = q_plus(j) + epsilon;
+    M_plus = massMatrix(robot, q_plus);
+    M_dot_approx = M_dot_approx + (M_plus - M_q) / epsilon * qdot_example(j);
+end
+
+
+% Calcul de Vm à partir de velocityProduct
+% C(q,qdot)*qdot = Vm(q,qdot)*qdot, donc on extrait Vm colonne par colonne
+Vm = zeros(6,6);
+for j = 1:6
+    qdot_unit = zeros(1,6);
+    qdot_unit(j) = 1.0;
+    Vm(:, j) = velocityProduct(robot, thetai', qdot_unit)';
+end
+
+S = M_dot_approx - 2*Vm;
+fprintf('  ||S + S''|| (doit être ~0 si antisymétrique) : %.2e\n', norm(S + S', 'fro'));
 
 
 

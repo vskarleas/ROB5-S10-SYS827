@@ -79,7 +79,7 @@ fprintf('Matrice de rotation :\n');
 disp(T06(1:3, 1:3));
 
 %% =======================================
-% Model cinematique differentiel
+%% Model cinematique differentiel
 % ========================================
 
 % Liens symboliques
@@ -155,8 +155,13 @@ end
 % Application numerique pour la pose (-91.06, -111.79, -104.53, -55.59, 90.79, -1.16)
 Jp_num = double(subs(Jp_sym, q_sym, thetai'));
 
+fprintf('\n========================================\n');
+fprintf('Jacobien numérique pour la pose donnée :\n');
+fprintf('========================================\n');
+disp(Jp_num);
 
-% Calcul de la Jacobienne angulaire pour la pose (-91.06, -111.79, -104.53, -55.59, 90.79, -1.16)
+
+% Calcul de la Jacobienne angulaire
 Jv = sym(zeros(3, 6));
 
 Jv(1:3,1) = T_cumul{1}(3,1:3);
@@ -167,44 +172,18 @@ Jv(1:3,5) = T_cumul{5}(3,1:3);
 Jv(1:3,6) = T_cumul{6}(3,1:3);
 
 
-%% =======================================
-% Calcul Jacobien avec le URDF
-% ========================================
-
-% Chargement du robot (nécessaire ici avant la Partie 2)
-robot = loadrobot("universalUR5", "DataFormat", "row");
-
-% Jacobien géométrique 6x6 du Toolbox (3 lignes angulaires + 3 lignes
-% linéaires) pour la pose (-91.06, -111.79, -104.53, -55.59, 90.79, -1.16)
-Jp_toolbox = geometricJacobian(robot, thetai', 'tool0');
-
-
 fprintf('\n========================================\n');
-fprintf('Jacobien de position et angulaire pour la pose (-91.06, -111.79, -104.53, -55.59, 90.79, -1.16):\n');
+fprintf('Jacobien de vitesse Jv (3x6) :\n');
 fprintf('========================================\n');
-% Affichage
-fprintf('Partie linéaire (lignes 4-6) du Toolbox :\n');
-disp(Jp_toolbox(4:6, :));
-
-fprintf('Notre Jacobien de position Jp (3x6) :\n');
-disp(Jp_num);
-
-fprintf('Partie angulaire (lignes 1-3) du Toolbox :\n');
-disp(Jp_toolbox(1:3, :));
-
-fprintf('Notre Jacobien angulaire Jv (3x6) :\n');
-disp(double(Jv));
+for j = 1:6
+    fprintf('\n--- dR/dq%d ---\n', j);
+    disp(Jv(:, j));
+end
 
 
 %% =======================================
-% Model dynamique
+%% Model dynamique
 % ========================================
-
-% Le Robotics System Toolbox fournit :
-%   - massMatrix(robot, q)         -> M(q)        : matrice de masse (6x6)
-%   - velocityProduct(robot, q, qd) -> C(q,qd)*qd : forces centrifuges + Coriolis (1x6)
-%   - gravityTorque(robot, q)      -> g(q)         : couple de gravité (1x6)
-
 
 
 %% ***************************************
@@ -319,4 +298,78 @@ for k = 1:N
     pause(0.05);
 end
 hold off;
+
+
+%% =======================================
+% Vérification du cinematique differentiel
+% ========================================
+
+% --- Test No 3 : Compariaosn de notre jacobien avec celui de Toolbox pour une pose donné (-91.06, -111.79, -104.53, -55.59, 90.79, -1.16)
+Jp_toolbox = geometricJacobian(robot, q_verification, 'tool0');
+fprintf('\n========================================\n');
+fprintf('Test No 3 - Verification du Jacobien de position :\n');
+fprintf('========================================\n');
+fprintf('Jacobien calculé (numérique) :\n');
+disp(Jp_num);
+fprintf('Jacobien de Toolbox :\n');
+disp(Jp_toolbox(1:3, :));
+fprintf('Erreur entre notre Jacobien et celui de Toolbox (numérique) :\n');
+disp(Jp_num - Jp_toolbox(1:3, :));
+
+% et pour la partie angulaire 
+fprintf('Jacobien angulaire calculé :\n');
+disp(Jv);
+fprintf('Jacobien angulaire de Toolbox :\n');
+disp(Jp_toolbox(4:6, :));
+fprintf('Erreur entre notre Jacobien angulaire et celui de Toolbox (numérique) :\n');
+disp(Jv - Jp_toolbox(4:6, :));
+
+
+%% =======================================
+% Vérification des modèles avec la tâche d'un suivi de trajectoire (controle
+% en vitesse)
+% ========================================
+
+% --- Test No 4 :
+% Vitesse cartesien désirée constante (uniquement en X)
+dt = 1.0 / N; % for N voir Test No 1 pour la decomposition de la trajectoire
+v_desired = [distance / 1.0; 0; 0];
+
+q_traj_vel = zeros(N, 6);
+positions_vel = zeros(3, N);
+q_current = thetai';
+
+fprintf('\n========================================\n');
+fprintf('Test No 4 - Calcul de la trajectoire -0.2m en X vitesse : \n');
+fprintf('========================================\n');
+
+for k = 1:N
+    q_traj_vel(k, :) = q_current;
+    
+    % Calcul du modèle direct pour position actuelle
+    T_current = eye(4);
+    for i = 1:6
+        T_current = T_current * DH_Modified_Transform(alphai(i), ai(i), di(i), q_current(i));
+    end
+    positions_vel(:, k) = T_current(1:3, 4);
+    
+    % Calcul du Jacobien numerique à la pose actuelle
+    Jp_k = double(subs(Jp_sym, q_sym, q_current));
+    
+    % Inversion du Jacobien (pseudo-inverse car 3x6)
+    dq = pinv(Jp_k) * v_desired;
+    
+    % Intégration : mise à jour des angles
+    q_current = q_current + dq' * dt;
+end
+
+fprintf('Trajectoire calculée avec succes (controle en vitesse)\n\n');
+
+% Position finale atteinte vs désirée
+pos_finale_vel = positions_vel(:, end);
+pos_finale_desiree = pos_init + [distance; 0; 0];
+fprintf('Position finale (vitesse)  : [%f, %f, %f] m\n', pos_finale_vel);
+fprintf('Position finale (désirée)  : [%f, %f, %f] m\n', pos_finale_desiree);
+fprintf('Erreur position            : [%f, %f, %f] mm\n', (pos_finale_vel - pos_finale_desiree)*1000);
+
 
