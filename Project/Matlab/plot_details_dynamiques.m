@@ -1,4 +1,7 @@
-robot = importrobot('universalUR5.urdf');
+function plot_details_dynamiques(robot)
+% plot_details_dynamiques affiche les parametres dynamiques de la
+% reference robot qui est donne comme argument comme vu en cours 5, page 44
+
 bodies = robot.BodyNames;
 
 n = numel(bodies);

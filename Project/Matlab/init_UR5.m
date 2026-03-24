@@ -1,24 +1,23 @@
 function [robot, thetai, ai, alphai, di, T, T_cumul, T06] = init_UR5()
-% Initialise le robot UR5, ses parametres DH modifies, et calcule
-% le modele cinematique direct pour la configuration de reference.
+% init_UR% initialise le robot UR5, ses parametres DH modifies, et calcule
+% le modele cinematique direct pour une configuration de reference qui est
+% definie ci-dessous. De plus il charge le robot par URDF de Robotics System
+% Toolbox et il le retourne pour qu'il soit utilisable dans le fichier du projet
+% principal pour effectuer des comparaisons et verifications
 %
-% Cette fonction couvre exclusivement la partie 1.1 du projet :
-%   - Definition des parametres geometriques du constructeur
-%   - Construction des parametres DH modifies (convention de Craig)
-%   - Chargement du modele URDF via la Robotics System Toolbox
-%   - Calcul des matrices de transformation elementaires et cumulees
 %
 % Sorties :
-%   robot    - Objet RigidBodyTree du UR5 (Robotics System Toolbox)
-%   thetai   - Configuration articulaire de reference (6x1, rad)
-%   ai       - Parametres DH : longueurs a_i (6x1)
-%   alphai   - Parametres DH : angles alpha_i (6x1)
-%   di       - Parametres DH : decalages d_i (6x1)
-%   T        - Matrices de transformation elementaires T_{i-1}^{i} (cell 6x1)
-%   T_cumul  - Matrices de transformation cumulees T_0^{i} (cell 6x1)
-%   T06      - Matrice de transformation de l'effecteur T_0^6 (4x4)
+%   robot : Objet RigidBodyTree du UR5 (Robotics System Toolbox)
+%   thetai : Configuration articulaire de reference (6x1 en rad)
+%   ai : Longueurs a_i (6x1)
+%   alphai : Αngles alpha_i (6x1)
+%   di : Parametres DH : decalages d_i (6x1)
+%   T : Matrices de transformation elementaires T_{i-1}-{i} (cell 6x1)
+%   T_cumul : Matrices de transformation cumulees T_0-{i} (cell 6x1)
+%   T06 : Matrice de transformation de l'effecteur T_0-6 (4x4)
 
-    %% Parametres geometriques UR5 (par le constructeur)
+%% Parametres geometriques UR5 (par le constructeur)
+% source : https://www.universal-robots.com/articles/ur/application-installation/dh-parameters-for-calculations-of-kinematics-and-dynamics/
     d1 = 0.089159;
     a2 = -0.425;
     a3 = -0.39225;
@@ -41,7 +40,7 @@ function [robot, thetai, ai, alphai, di, T, T_cumul, T06] = init_UR5()
 
     %% Chargement du robot UR5 dans la Robotics System Toolbox
     robot = loadrobot("universalUR5", "DataFormat", "row");
-    robot.Gravity = [0 0 -9.81];
+    robot.Gravity = [0 0 -9.81]; % la gravite n'est pas definit par defaut sur Matlab
 
     %% Matrices de transformation elementaires T_{i-1}^{i}
     T = cell(6,1);

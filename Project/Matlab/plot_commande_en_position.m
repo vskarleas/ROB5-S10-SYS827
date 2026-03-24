@@ -1,22 +1,21 @@
 function plot_commande_en_position(robot, q_traj, positions, N_frames, fig_title)
-% Anime le robot suivant une trajectoire articulaire
-% et affiche la trajectoire cartesienne desiree.
-%
-% Cette fonction est utilisee en partie 1.3 pour visualiser le suivi
-% de trajectoire par cinematique inverse.
+% plot_commande_en_position anime le robot suivant une trajectoire articulaire
+% et affiche la trajectoire cartesienne desiree. Cette fonction est utilisee pour
+% visualiser le suivi de trajectoire par cinematique inverse.
 %
 % Entrees :
-%   robot      - Objet RigidBodyTree
-%   q_traj     - Trajectoire articulaire (N x 6)
-%   positions  - Trajectoire cartesienne desiree (3 x N)
-%   N_frames   - Nombre de frames pour l'animation (defaut : 200)
-%   fig_title  - Titre de la figure (defaut : 'Suivi de trajectoire')
+%   robot : Objet RigidBodyTree de notre robot
+%   q_traj : Trajectoire articulaire (N x 6) car le robot UR5 a 6 dof donc 6 variables articulaires
+%   positions :Trajectoire cartesienne desiree (3 x N)
+%   N_frames : Nombre de frames pour l'animation
+%   fig_title : Titre de la figure
 
     N = size(q_traj, 1);
     id_frame = round(linspace(1, N, N_frames));
 
     figure('Name', fig_title);
 
+    % Premier positionnement du robot dans la scene
     ax = show(robot, q_traj(1,:), ...
         'Visuals', 'on', ...
         'Frames', 'off', ...

@@ -1,27 +1,20 @@
 function h_grip = draw_gripper(robot, q, gripper_length, is_open)
-% DRAW_GRIPPER Dessine un gripper 3D simplifie (corps + 2 doigts) attache
-% au repere tool0 du robot.
+% draw_gripper dessine un gripper 3D attache au repere tool0 du robot UR5
 %
 % Le gripper est compose de :
 %   - Un corps cylindrique (entre tool0 et gripper_tip)
 %   - Deux doigts rectangulaires a l'extremite
 %
 % Entrees :
-%   robot          - Objet RigidBodyTree
-%   q              - Configuration articulaire (1 x 6)
-%   gripper_length - Longueur du gripper (m), coherente avec gripper.m
-%   is_open        - true = doigts ouverts, false = doigts fermes
+%   robot : Objet RigidBodyTree
+%   q : Configuration articulaire (1 x 6)
+%   gripper_length : Longueur du gripper (m) (cf. gripper.m)
+%   is_open : variable boolean pour controller l\animation d'ouverture et
+%   fermeture des doights du gripper
 %
 % Sortie :
-%   h_grip         - Vecteur de handles graphiques (pour suppression/maj)
-%
-% Utilisation :
-%   h = draw_gripper(robot, q, 0.12, true);
-%   delete(h);  % pour effacer avant de redessiner
+%   h_grip : Vecteur de handles graphiques (pour suppression/maj)
 
-    if nargin < 4
-        is_open = true;
-    end
 
     % Transformation tool0 dans le repere de base
     T_tool = getTransform(robot, q, 'tool0');

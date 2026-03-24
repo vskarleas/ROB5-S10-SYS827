@@ -1,40 +1,39 @@
 function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, ...
                       tau_hist, q_hist, phase_ids, ...
                       pos_pick, pos_place, N_total)
-% PLOT_COMMANDE_EN_IMPENDANCE Affiche les resultats de la simulation de la
-% commande en impedance pour la tache de pick & place.
+% plot_commande_en_impendance affiche les resultats de la simulation de la
+% commande en impedance pour la tache pick and place. On genere les 5
+% figures suivantes :
 %
-% Cette fonction genere 5 figures :
 %   1) Trajectoire 3D desiree vs reelle, coloree par phase
-%   2) Suivi de trajectoire par composante (X, Y, Z) avec transitions
+%   2) Suivi de trajectoire
 %   3) Erreur de suivi (norme par phase + composantes)
 %   4) Couples articulaires
 %   5) Animation du robot avec gripper, balle et trace
 %
 % Entrees :
-%   robot      - Objet RigidBodyTree (avec gripper_tip)
-%   t_vec      - Vecteur de temps (1 x N_total)
-%   traj_full  - Trajectoire cartesienne desiree (3 x N_total)
-%   x_hist     - Trajectoire cartesienne reelle (3 x N_total)
-%   err_hist   - Erreur de position (3 x N_total)
-%   tau_hist   - Couples articulaires (N_total x 6)
-%   q_hist     - Configurations articulaires (N_total x 6)
-%   phase_ids  - Identifiant de phase pour chaque point (1 x N_total)
-%   pos_pick   - Position de pick (3 x 1)
-%   pos_place  - Position de place (3 x 1)
-%   N_total    - Nombre total de points
+%   robot : Objet RigidBodyTree (avec gripper_tip)
+%   t_vec : Vecteur de temps (1 x N_total)
+%   traj_full : Trajectoire cartesienne desiree (3 x N_total)
+%   x_hist : Trajectoire cartesienne reelle (3 x N_total)
+%   err_hist : Erreur de position (3 x N_total)
+%   tau_hist: Couples articulaires (N_total x 6)
+%   q_hist : Configurations articulaires (N_total x 6)
+%   phase_ids :Identifiant de phase pour chaque point (1 x N_total)
+%   pos_pick :Position de pick (3 x 1)
+%   pos_place :Position de place (3 x 1)
+%   N_total : Nombre total de points (cf. partie 4.2)
 
-    %% Definitions communes
-    couleurs_phase = [0.2 0.6 1.0;   % bleu   - descente pick
-                      0.0 0.8 0.4;   % vert   - remontee pick
-                      1.0 0.5 0.0;   % orange - transport
-                      0.8 0.2 0.2;   % rouge  - descente place
-                      0.6 0.2 0.8];  % violet - remontee place
+    %% Definitions
+    couleurs_phase = [0.2 0.6 1.0;   % bleu (segment 1)
+                      0.0 0.8 0.4;   % vert (segment 2)
+                      1.0 0.5 0.0;   % orange (segment 3)
+                      0.8 0.2 0.2;   % rouge (segment 4)
+                      0.6 0.2 0.8];  % violet (segment 5)
 
-    noms_phase = {'Descente pick', 'Remontee pick', 'Transport', ...
-                  'Descente place', 'Remontee place'};
+    noms_phase = {'Descente pick', 'Remontee pick', 'Transport', 'Descente place', 'Remontee place'};
 
-    %% Affichage des metriques dans la console
+    %% Affichage des erreurs
     err_final = norm(err_hist(:, end));
     fprintf('\n--- Resultats ---\n');
     fprintf('Erreur de position finale : %.4f mm\n', err_final * 1000);
@@ -44,36 +43,32 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
     %% ===============================================
     % Figure 1 : Trajectoire 3D avec phases
     % ================================================
-    figure('Name', 'Trajectoire 3D - Pick & Place');
+    figure('Name', 'Trajectoire 3D pour la tache pick and place (controle en impendance)');
     hold on;
 
-    for ph = 1:5
+    % Les 5 segments de la trajectoire
+    for ph = 1:5 % coloration de chaque segment de la trajectoire avec un autre couleur
         idx = (phase_ids == ph);
-        plot3(traj_full(1,idx), traj_full(2,idx), traj_full(3,idx), ...
-            '-', 'Color', couleurs_phase(ph,:), 'LineWidth', 2, ...
-            'DisplayName', ['Desire - ' noms_phase{ph}]);
+        plot3(traj_full(1,idx), traj_full(2,idx), traj_full(3,idx), '-', 'Color', couleurs_phase(ph,:), 'LineWidth', 2, 'DisplayName', ['Desire - ' noms_phase{ph}]);
     end
 
-    plot3(x_hist(1,:), x_hist(2,:), x_hist(3,:), ...
-        'k--', 'LineWidth', 1.5, 'DisplayName', 'Trajectoire reelle');
+    % Les actions de pick and place
+    plot3(x_hist(1,:), x_hist(2,:), x_hist(3,:), 'k--', 'LineWidth', 1.5, 'DisplayName', 'Trajectoire reelle');
 
-    plot3(pos_pick(1), pos_pick(2), pos_pick(3), ...
-        'v', 'MarkerSize', 14, 'MarkerFaceColor', [0 0.7 0], ...
-        'MarkerEdgeColor', 'k', 'DisplayName', 'Pick');
-    plot3(pos_place(1), pos_place(2), pos_place(3), ...
-        '^', 'MarkerSize', 14, 'MarkerFaceColor', [0.8 0 0], ...
-        'MarkerEdgeColor', 'k', 'DisplayName', 'Place');
+    plot3(pos_pick(1), pos_pick(2), pos_pick(3),'v', 'MarkerSize', 14, 'MarkerFaceColor', [0 0.7 0], 'MarkerEdgeColor', 'k', 'DisplayName', 'Pick');
+    
+    plot3(pos_place(1), pos_place(2), pos_place(3), '^', 'MarkerSize', 14, 'MarkerFaceColor', [0.8 0 0], 'MarkerEdgeColor', 'k', 'DisplayName', 'Place');
 
     xlabel('X (m)'); ylabel('Y (m)'); zlabel('Z (m)');
-    title('Trajectoire Pick & Place - Commande en impedance');
+    title('Trajectoire pour la tache pick and place - Commande en impedance');
     legend('Location', 'best');
     view([-40 25]); grid on; axis equal;
     hold off;
 
     %% ===============================================
-    % Figure 2 : Suivi par composante avec phases
+    % Figure 2 : Suivi de trajectoire
     % ================================================
-    figure('Name', 'Suivi de trajectoire par composante');
+    figure('Name', 'Suivi de trajectoire (controle en impendance)');
     axes_labels = {'X', 'Y', 'Z'};
 
     transitions = zeros(1,4);
@@ -103,7 +98,7 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
     %% ===============================================
     % Figure 3 : Erreur de suivi
     % ================================================
-    figure('Name', 'Erreur de suivi');
+    figure('Name', 'Erreur de suivi (controle en impendance)');
 
     subplot(2,1,1);
     hold on;
@@ -116,21 +111,22 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
             'DisplayName', noms_phase{ph});
     end
     ylabel('||e|| (mm)');
+
     title('Norme de l''erreur de suivi par phase');
     legend('Location', 'best'); grid on;
 
     subplot(2,1,2);
-    plot(t_vec, err_hist(1,:)*1000, 'r', ...
-         t_vec, err_hist(2,:)*1000, 'g', ...
-         t_vec, err_hist(3,:)*1000, 'b', 'LineWidth', 1);
+    plot(t_vec, err_hist(1,:)*1000, 'r', t_vec, err_hist(2,:)*1000, 'g',t_vec, err_hist(3,:)*1000, 'b', 'LineWidth', 1);
+
     ylabel('Erreur (mm)'); xlabel('Temps (s)');
     legend('e_x', 'e_y', 'e_z'); grid on;
+
     title('Erreur de suivi par composante');
 
     %% ===============================================
-    % Figure 4 : Couples articulaires
+    % Figure 4 : Couples articulaires appliques
     % ================================================
-    figure('Name', 'Couples articulaires');
+    figure('Name', 'Couples articulaires appliques (controle en impendance)');
     for j = 1:6
         subplot(3,2,j);
         plot(t_vec, tau_hist(:,j), 'LineWidth', 1);
@@ -138,22 +134,21 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
         if j >= 5, xlabel('Temps (s)'); end
         grid on;
     end
-    sgtitle('Couples articulaires - Commande en impedance');
+
 
     %% ===============================================
     % Figure 5 : Animation avec gripper et balle
     % ================================================
-    figure('Name', 'Animation Pick & Place', 'Position', [100 100 1000 700]);
+    figure('Name', 'Animation de la tache pick and place (controle en impendance)', 'Position', [100 100 1000 700]);
 
     N_frames_anim = 300;
     idx_anim = round(linspace(1, N_total, N_frames_anim));
 
-    ax_anim = show(robot, q_hist(1,:), ...
-        'Visuals', 'on', 'Frames', 'off', ...
-        'PreservePlot', false, 'FastUpdate', true);
+    ax_anim = show(robot, q_hist(1,:), 'Visuals', 'on', 'Frames', 'off', 'PreservePlot', false, 'FastUpdate', true);
+
     hold on;
 
-    % Trajectoire desiree coloree par phase
+    % Trajectoire desiree par phase
     for ph = 1:5
         idx = (phase_ids == ph);
         plot3(traj_full(1,idx), traj_full(2,idx), traj_full(3,idx), ...
@@ -161,12 +156,11 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
     end
 
     % Marqueurs pick et place
-    plot3(pos_pick(1), pos_pick(2), pos_pick(3), ...
-        'v', 'MarkerSize', 14, 'MarkerFaceColor', [0 0.7 0], 'MarkerEdgeColor', 'k');
-    plot3(pos_place(1), pos_place(2), pos_place(3), ...
-        '^', 'MarkerSize', 14, 'MarkerFaceColor', [0.8 0 0], 'MarkerEdgeColor', 'k');
+    plot3(pos_pick(1), pos_pick(2), pos_pick(3), 'v', 'MarkerSize', 14, 'MarkerFaceColor', [0 0.7 0], 'MarkerEdgeColor', 'k');
+    
+    plot3(pos_place(1), pos_place(2), pos_place(3), '^', 'MarkerSize', 14, 'MarkerFaceColor', [0.8 0 0], 'MarkerEdgeColor', 'k');
 
-    % Balle
+    % Balle (objet a deplacer)
     ball_radius = 0.02;
     [bsx, bsy, bsz] = sphere(15);
     h_ball = surf(ball_radius*bsx + pos_pick(1), ...
@@ -181,15 +175,17 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
          'FaceColor', [0.1 0.8 0.1], 'FaceAlpha', 0.15, ...
          'EdgeColor', [0 0.5 0], 'LineStyle', '--');
 
-    % Gripper initial
+    % Initialisation du gripper
     h_grip = draw_gripper(robot, q_hist(1,:), 0.12, true);
+
 
     % Trace en temps reel
     h_trace = plot3(nan, nan, nan, 'k--', 'LineWidth', 1);
     trace_x = []; trace_y = []; trace_z = [];
 
-    title('Animation Pick & Place');
-    view([-40 25]); grid on;
+    title('Animation de la tache pick and placce');
+    view([-40 25]); 
+    grid on;
     light('Position', [1 1 1]);
 
     % Logique de saisie de la balle
@@ -207,7 +203,7 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
 
         % Mise a jour du gripper
         delete(h_grip);
-        is_open = (phase_ids(k) == 1) || (phase_ids(k) == 5);
+        is_open = (phase_ids(k) == 1) || (phase_ids(k) == 5); % ouvert que pendant la premiere descente et suite du depot au segment 5 de la trajectoire
         h_grip = draw_gripper(robot, q_hist(k,:), 0.12, is_open);
 
         % Logique de la balle
@@ -224,7 +220,7 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
             ball_pos = pos_place;
         end
 
-        % Mise a jour de la balle
+        % Deplacement de la balle
         set(h_ball, 'XData', ball_radius*bsx + ball_pos(1), ...
                     'YData', ball_radius*bsy + ball_pos(2), ...
                     'ZData', ball_radius*bsz + ball_pos(3));
@@ -235,7 +231,7 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
         trace_z(end+1) = x_hist(3,k); %#ok<AGROW>
         set(h_trace, 'XData', trace_x, 'YData', trace_y, 'ZData', trace_z);
 
-        % Titre avec phase courante
+  
         title(sprintf('t = %.2f s - Phase %d : %s', ...
             t_vec(k), phase_ids(k), noms_phase{phase_ids(k)}));
 
@@ -244,5 +240,5 @@ function plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, 
     end
 
     hold off;
-    fprintf('Animation terminee.\n');
+    fprintf('Animation terminee\n');
 end

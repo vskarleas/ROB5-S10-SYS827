@@ -240,7 +240,7 @@ px_sym = T06_sym(1,4);
 py_sym = T06_sym(2,4);
 pz_sym = T06_sym(3,4);
 
-%% Construction du jacobien analytique de position Jv = dP/dq
+%% Construction du jacobien analytique de position Jv = dP/dq (cours 3, page 13)
 % Chaque element Jv(i,j) correspond a la derivee partielle de la i-eme
 % composante de la position par rapport a la j-eme variable articulaire
 Jv_sym = sym(zeros(3,6));
@@ -251,7 +251,7 @@ for j = 1:6
 end
 Jv_sym = simplify(Jv_sym, 'Steps', 50);
 
-%% Simplification trigonometrique pour l'affichage
+%% Simplification trigonometrique pour l'affichage (cours 1, page 157 Annexe A)
 % On substitue les produits trigonometriques par les identites de somme
 % (ex. cos(q2)*cos(q3) - sin(q2)*sin(q3) = cos(q2+q3)) afin d'obtenir
 % des expressions plus compactes et lisibles. On introduit les variables
@@ -392,11 +392,9 @@ fprintf('\n***************************************\n');
 fprintf('PARTIE 2.4 - CONSTRUCTION DE LA JACOBIENNE GEOMETRIQUE COMPLETE Jg = [Jw ; Jv]\n');
 fprintf('***************************************\n');
 
-% La jacobienne geometrique complete Jg relie le torseur cinematique
+% La jacobienne geometrique complete Jg relie le torseur cinematique (cours 3, page 24)
 % de l'effecteur (vitesse angulaire + vitesse lineaire) aux vitesses
-% articulaires :
-%       [omega]     [Jw]
-%       [  v  ]  =  [Jv] * qdot
+% articulaires.
 %
 % Pour une articulation rotoide i :
 %   - La colonne de Jw est simplement l'axe de rotation z_{i-1}
@@ -480,7 +478,7 @@ fprintf('PARTIE 3 - IMPLEMENTATION DU MODELE DYNAMIQUE\n');
 fprintf('***************************************\n');
 
 % Le modele dynamique articulaire s'ecrit sous la forme :
-% tau = M(q)*qdd + h(q,qd) + g(q)
+% tau = M(q)*qdd + h(q,qd) + g(q) (cours 5, page 34)
 %
 % avec :
 % M(q)   : matrice de masse/inertie
@@ -548,10 +546,10 @@ fprintf('Erreur maximale absolue : %e\n', max(abs(err_tau)));
 %% PARTIE 4 - COMMANDE EN IMPEDANCE POUR UNE TACHE PICK & PLACE
 % ==========================================================
 
-% On implemente une commande en impedance dans l'espace
-% cartesien pour realiser une tache de pick & place. La trajectoire
+% On implemente maintenant une commande en impedance dans l'espace
+% cartesien pour realiser une tache de pick and place. La trajectoire
 % reprend celle de la partie 1.3 (ligne droite + arc de cercle) avec
-% deux mouvements verticaux supplementaires :
+% deux mouvements verticaux supplementaires, à savoir :
 %   - Descente en Z au point de depart (pick) et temontee en Z apres saisie
 %   - Descente en Z au point d'arrivee (place)et remontee en Z apres depot
 
@@ -571,7 +569,13 @@ fprintf('***************************************\n');
 % Ce corps a une masse et une inertie qui seront prises en compte dans
 % le modele dynamique lors du calcul des couples
 
+% Affichage des parametres dynamiques du modele du robot avant le gripper
+plot_details_dynamiques(robot); % (cours 5, page 44)
+
 robot = gripper(robot, 0.12, 0.8);
+
+% Affichage des parametres dynamiques du modele du robot apres le gripper
+plot_details_dynamiques(robot);
 
 
 %% 4.2 - CONSTRUCTION DE LA TRAJECTOIRE PICK & PLACE
@@ -583,12 +587,12 @@ fprintf('***************************************\n');
 
 %% Parametres des mouvements verticaux
 hauteur_descente = 0.1;
-fprintf('Hauteur de descente pour Pick & Place : %.4f m\n', hauteur_descente);
+fprintf('Hauteur de descente pour la tache Pick & Place : %.4f m\n', hauteur_descente);
 
 N_descente = 300; % nb des points pour la decomposition de la trajectoire
 N_remontee = 300;
 
-% La trajectoire complete se decompose en 5 segments :
+%% La trajectoire complete se decompose en 5 segments :
 %   Segment 1 : On descend de hauteur_descente suivant -Z a partir de la position initiale
 %   Segment 2 : Remontee verticale apres la saisie
 %   Segment 3 : Trajectoire de transport (ligne droite + arc, cf. partie 1.3)
@@ -596,7 +600,7 @@ N_remontee = 300;
 %   Segment 5 : Remontee verticale apres le depot
 
 %% Segment 3 (compute first to get the reference positions)
-seg3 = zeros(3, N);
+seg3 = zeros(3, N); % pour le N cf. partie 1.3
 for k = 1:N
     T_k = getTransform(robot, q_traj(k,:), 'gripper_tip');
     seg3(:, k) = T_k(1:3, 4);
@@ -669,8 +673,10 @@ fprintf('\n***************************************\n');
 fprintf('PARTIE 4.3 - CALCUL DES VITESSES ET ACCELERATIONS DESIREES\n');
 fprintf('***************************************\n');
 
-% Ici on attribue une duree a chaque segment et on calcule les derivees
-% par differences finies.
+% On attribue une duree a chaque segment puis on calcule les vitesses et
+% accelerations desirees par differences finies centrees. Ces derivees
+% sont necessaires au controleur en impedance qui requiert xdot_d et xddot_d
+% a chaque pas de temps pour calculer l'acceleration de reference
 
 % Durees de chaque segment
 duree_descente  = 1.5;
@@ -681,12 +687,12 @@ duree_place_rem  = 1.5;
 
 T_sim = duree_descente + duree_remontee + duree_transport + duree_place_desc + duree_place_rem;
 
-%% Vecteur de temps avec pas variable selon le segment
+%% Vecteur de temps
 dt_global = T_sim / N_total;  % pas de temps moyen
 t_vec = linspace(0, T_sim, N_total);
 dt = t_vec(2) - t_vec(1);
 
-%% Calcul des vitesses par differences finies centrees
+%% Calcul des vitesses par differences finies centrees (position /dt)
 xd_traj = zeros(3, N_total);
 for k = 2:N_total-1
     xd_traj(:,k) = (traj_full(:,k+1) - traj_full(:,k-1)) / (2*dt);
@@ -713,20 +719,26 @@ fprintf('***************************************\n');
 %   M_d * (xdd - xdd_d) + B_d * (xd - xd_d) + K_d * (x - x_d) = F_ext
 %
 % En l'absence de force externe (mouvement libre), le controleur
-% corrige les ecarts de position et de vitesse selon les gains K_d et B_d.
+% corrige les ecarts de position et de vitesse selon les gains K_d et B_d. Donc pas d'inertie appliquee
 
 Md = 5.0  * eye(3); % inertie desiree (kg)
 Kd = 800  * eye(3); % raideur desiree (N/m)
 Bd = 80   * eye(3); % amortissement desire (Ns/m)
 
-%% Verification du ratio d'amortissement
-% Pour un systeme du second ordre on a B_cr = 2*sqrt(K*M)
+%% Verification du ratio d'amortissement (cours 6, page 36)
+% Pour un systeme du second ordre on a B_cr = 2*sqrt(K*M) % niveau d'amortissement optimal pour que le système oscillant revient à sa position d'équilibre
 B_critique = 2 * sqrt(Kd(1,1) * Md(1,1));
-ratio_amort = Bd(1,1) / B_critique;
+taux_amort = Bd(1,1) / B_critique;
 
 fprintf('Md = %.1f kg, Kd = %.1f N/m, Bd = %.1f Ns/m\n', Md(1,1), Kd(1,1), Bd(1,1));
 fprintf('Amortissement critique = %.1f Ns/m\n', B_critique);
-fprintf('Ratio d''amortissement  = %.2f (1.0 = critique)\n', ratio_amort);
+fprintf('Taux d''amortissement  = %.2f\n', taux_amort);
+
+% Resultat : Le taux d'amortissement est proche à 0.6. 
+% Cela veut dire que le système est sous-amorti, donc on va observer des oscillations. 
+% Puis le système revient à l'équilibre le plus rapidement possible. Donc nous 
+% attendons que au debut du mouvement il y aura quelques oscillations mais plus 
+% tard le système sera stabilise
 
 
 
@@ -736,6 +748,12 @@ fprintf('\n***************************************\n');
 fprintf('PARTIE 4.5 - BOUCLE DE SIMULATION\n');
 fprintf('***************************************\n');
 
+% Le robot n'est pas en contact avec l'environnement dans cette simulation (W_e = 0), mais la loi
+% d'impedance definit la reaction dynamique de l'outil face a d'eventuels efforts externes.
+% En l'absence de force externe (W_e = 0), la trajectoire corrigee
+% coincide avec la trajectoire desiree et le controleur assure le suivi
+% de trajectoire par commande linearisante dans l'espace de la tache
+
 
 % Sauvegarder l'historique
 q_hist    = zeros(N_total, 6);
@@ -744,23 +762,24 @@ x_hist    = zeros(3, N_total);
 err_hist  = zeros(3, N_total);
 tau_hist  = zeros(N_total, 6);
 
-%% Conditions initiales
+%% Initialisation
 % On initialise la simulation a la configuration articulaire correspondant
 % au debut du segment de transport (q_traj(1,:) de la partie 1.3), qui est
 % la configuration URDF equivalente a thetai.
 q  = q_traj(1,:);
 qd = zeros(1, 6);
 
-for k = 1:N_total
+
+for k = 1:N_total % (cours 6, pages 13, 14 (diapos 25,26,27) et 28 (diapos 55,56))
     %% Cinematique directe du gripper
     T_current = getTransform(robot, q, 'gripper_tip');
     x_current = T_current(1:3, 4);
 
     %% Jacobien geometrique au point du gripper
     J_geo = geometricJacobian(robot, q, 'gripper_tip');
-    Jv_ctrl = J_geo(4:6, :);   % partie lineaire (lignes 4-6)
+    Jv_ctrl = J_geo(4:6, :);   % partie lineaire seulement (lignes 4-6) (cf. 2.5 partie ci-dessus)
 
-    %% Vitesse cartesienne actuelle
+    %% Vitesse cartesienne actuelle lineaire
     xdot_current = Jv_ctrl * qd';
 
     %% Erreurs cartesiennes
@@ -777,7 +796,7 @@ for k = 1:N_total
 
     %% Passage en espace articulaire par pseudo-inverse du jacobien
     %   qdd_ref = Jv^+ * xdd_ref
-    % On neglige le terme Jdot*qd (contribution faible a basse vitesse)
+    
     Jv_pinv = pinv(Jv_ctrl);
     qdd_ref = Jv_pinv * xdd_ref;
 
@@ -789,7 +808,7 @@ for k = 1:N_total
 
     tau_cmd = (M_q * qdd_ref + (-vp_q)' + g_q')';
 
-    %% Integration (Euler)
+    %% Integration simple (Euler)
     qdd = (M_q \ (tau_cmd' - (-vp_q)' - g_q'))';
     qd  = qd + qdd * dt;
     q   = q  + qd  * dt;
