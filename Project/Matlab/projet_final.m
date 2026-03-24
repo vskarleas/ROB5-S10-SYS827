@@ -837,10 +837,10 @@ fprintf('***************************************\n');
 
 plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, tau_hist, q_hist, phase_ids, pos_pick, pos_place, N_total);
 
-%% 4.7 - TEST DE PERTURBATION EXTERNE
+%% 4.7 - TEST DE PERTURBATION
 % ==========================================================
 % fprintf('\n***************************************\n');
-% fprintf('PARTIE 4.7 - TEST DE PERTURBATION EXTERNE\n');
+% fprintf('PARTIE 4.7 - TEST DE PERTURBATION\n');
 % fprintf('***************************************\n');
 % 
 % % On reproduit la simulation de la partie 4.5 en ajoutant une force
