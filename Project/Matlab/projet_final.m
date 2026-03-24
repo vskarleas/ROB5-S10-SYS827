@@ -836,28 +836,3 @@ fprintf('PARTIE 4.6 - RESULTATS DE LA SIMULATION\n');
 fprintf('***************************************\n');
 
 plot_commande_en_impendance(robot, t_vec, traj_full, x_hist, err_hist, tau_hist, q_hist, phase_ids, pos_pick, pos_place, N_total);
-
-%% 4.7 - TEST DE PERTURBATION
-% ==========================================================
-% fprintf('\n***************************************\n');
-% fprintf('PARTIE 4.7 - TEST DE PERTURBATION\n');
-% fprintf('***************************************\n');
-% 
-% % On reproduit la simulation de la partie 4.5 en ajoutant une force
-% % externe transitoire pendant la phase de transport. Cela permet de
-% % valider le comportement compliant du controleur en impedance.
-% % En regime permanent, la deflexion attendue est x_def = F / K_d.
-% % Avec K_d = 800 N/m et F = 40 N, on attend x_def = 0.05 m = 50 mm.
-% 
-% F_contact       = [40; 0; 0];    % force de 40 N suivant X
-% t_contact_start = 4.0;           % debut pendant le transport
-% t_contact_end   = 7.0;           % fin pendant le transport
-% 
-% [x_pert, err_pert, tau_pert, q_pert, F_ext_hist] = perturbation( ...
-%     robot, traj_full, xd_traj, xdd_traj, ...
-%     q_traj(1,:), Md, Kd, Bd, dt, N_total, ...
-%     F_contact, t_contact_start, t_contact_end, t_vec);
-% 
-% plot_perturbation(t_vec, traj_full, x_hist, x_pert, ...
-%                   err_hist, err_pert, F_ext_hist, ...
-%                   Kd, F_contact, t_contact_start, t_contact_end);
