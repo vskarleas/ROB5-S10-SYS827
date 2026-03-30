@@ -1,5 +1,5 @@
 function [robot, thetai, ai, alphai, di, T, T_cumul, T06] = init_UR5()
-% init_UR% initialise le robot UR5, ses parametres DH modifies, et calcule
+% init_UR: initialise le robot UR5, ses parametres DH modifies, et calcule
 % le modele cinematique direct pour une configuration de reference qui est
 % definie ci-dessous. De plus il charge le robot par URDF de Robotics System
 % Toolbox et il le retourne pour qu'il soit utilisable dans le fichier du projet

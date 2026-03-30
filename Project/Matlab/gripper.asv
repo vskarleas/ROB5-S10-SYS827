@@ -26,6 +26,8 @@ function robot = gripper(robot, gripper_length, gripper_mass)
     gripperBody.Mass = gripper_mass;
 
 
+    
+
     % Inertie approchee comme un cylindre mince de rayon r = 0.02 m. Voir draw_gripper.m pour reference
     r_grip = 0.02;
 
@@ -33,8 +35,7 @@ function robot = gripper(robot, gripper_length, gripper_mass)
     Iyy = Ixx;
     Izz = (1/2) * gripper_mass * r_grip^2;
     gripperBody.Inertia = [Ixx, Iyy, Izz, 0, 0, 0];
-    % Calcul de la position du centre de masse du gripper
-    gripperBody.CenterOfMass = [0 0 -gripper_length/2]; % Centre de masse au milieu du gripper
+    % Calcul
 
     % Ajout du tyoe d'articulation pour le corps du gripper
     gripperJoint = rigidBodyJoint('gripper_joint', 'fixed');
