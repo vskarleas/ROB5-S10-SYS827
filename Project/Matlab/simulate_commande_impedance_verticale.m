@@ -99,7 +99,7 @@ function [q_hist, qd_hist, qdd_hist, x_hist, xdot_hist, x_c_hist, err_hist, tau_
         xd_c(1:2)  = xd_d(1:2,k);
         xdd_c(1:2) = xdd_d(1:2,k);
 
-        % Impedance uniquement sur Z
+        % Impedance uniquement sur Z!
         Delta_z  = x_d(3,k)  - x_c(3);
         Delta_dz = xd_d(3,k) - xd_c(3);
 
@@ -147,7 +147,7 @@ function [q_hist, qd_hist, qdd_hist, x_hist, xdot_hist, x_c_hist, err_hist, tau_
         g_q  = gravityTorque(robot, q);
 
         
-        
+
         % qdd = M^-1 * ( tau + velocityProduct - gravity )
         qdd = (M_q \ (tau_cmd' + vp_q' - g_q'))';
 
