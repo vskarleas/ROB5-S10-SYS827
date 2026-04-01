@@ -51,7 +51,7 @@ function [t_vec, x_d, xd_d, xdd_d, z_table] = ...
     % On utilise un polynome du 5e degre pour la phase d'approche
     % afin d'avoir vitesse et acceleration nulles au debut et a la fin
     T_move = 0.6 * Tf;   % 60% du temps pour descendre
-    T_hold = Tf - T_move;
+
 
     for k = 1:N
         t = t_vec(k);
