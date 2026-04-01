@@ -103,7 +103,7 @@ function [q_hist, qd_hist, qdd_hist, x_hist, xdot_hist, x_c_hist, err_hist, tau_
         Delta_z  = x_d(3,k)  - x_c(3);
         Delta_dz = xd_d(3,k) - xd_c(3);
 
-        % FORMULE CORRECTE :
+     
         % xdd_c = xdd_d + Md^-1 * ( Bd*Delta_dz + Kd*Delta_z - Fext )
         xdd_c(3) = xdd_d(3,k) + ...
                    ( Bd(3,3) * Delta_dz + Kd_imp(3,3) * Delta_z + F_ext(3) ) / Md(3,3);
@@ -146,7 +146,8 @@ function [q_hist, qd_hist, qdd_hist, x_hist, xdot_hist, x_c_hist, err_hist, tau_
         vp_q = velocityProduct(robot, q, qd);
         g_q  = gravityTorque(robot, q);
 
-        % FORMULE CORRECTE :
+        
+        
         % qdd = M^-1 * ( tau + velocityProduct - gravity )
         qdd = (M_q \ (tau_cmd' + vp_q' - g_q'))';
 
