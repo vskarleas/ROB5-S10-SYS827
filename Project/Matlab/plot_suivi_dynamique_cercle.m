@@ -17,7 +17,9 @@ function plot_suivi_dynamique_cercle(robot, t_vec, x_d, x_hist, err_hist, tau_hi
 %   q_hist         : Historique articulaire (N x 6)
 %   gripper_length : Longueur du gripper pour l'affichage
 %   N_frames       : Nombre de frames pour l'animation (optionnel)
-
+%
+% Sortie :
+%   aucune
 
     if nargin < 9
         N_frames = 150;

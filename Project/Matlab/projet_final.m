@@ -1,7 +1,6 @@
 close all;
 clear;
 clc;
-
 %% INITIALISATION GENERALE
 % ==========================================================
 fprintf('\n========================================================\n');
@@ -20,15 +19,15 @@ d4 = di(4);
 d5 = di(5);
 d6 = di(6);
 
-
 %% PARTIE 1.1 - MODELE CINEMATIQUE DIRECT
 % ==========================================================
 fprintf('\n***************************************\n');
 fprintf('PARTIE 1.1 - MODELE CINEMATIQUE DIRECT\n');
 fprintf('***************************************\n');
 
-% La pose choisi pour laquelle on fait le calcul du modele cinematique
-% direct est (-91.06, -111.79, -104.53, -55.59, 90.79, -1.16)
+% La configuration articulaire de reference utilisee pour le calcul du
+% modele cinematique direct est :
+% (-91.06, -111.79, -104.53, -55.59, 90.79, -1.16) deg
 
 %% Affichage des matrices de transformation elementaires T_{i-1}-{i}
 for i = 1:6
@@ -96,15 +95,17 @@ fprintf('========================================\n');
 fprintf('Angles originaux (deg)  : [%.2f, %.2f, %.2f, %.2f, %.2f, %.2f]\n', rad2deg(thetai.'));
 fprintf('Angles IK trouves (deg) : [%.2f, %.2f, %.2f, %.2f, %.2f, %.2f]\n', rad2deg(q_verification));
 fprintf('Erreur (deg)            : [%.4f, %.4f, %.4f, %.4f, %.4f, %.4f]\n', rad2deg(q_verification - thetai.'));
-% Resultat : T06 est exprimee dans notre repere de base DH
-% Le modele MATLAB utilise un repere de base different, ce qui explique
-% ensuite un decalage de 180 deg sur q1 dans la comparaison IK
+% Resultat :
+% T06 est exprimee dans le repere associe a notre parametrisation DH,
+% tandis que le modele MATLAB utilise le repere du modele URDF.
+% Les ecarts observes dans la comparaison peuvent donc provenir d'une
+% difference de convention de repere.
 
 
 % Comparaison des poses pour mettre en evidence la difference de repere
 % entre notre modele DH et le modele URDF charge par MATLAB.
 fprintf('\n========================================\n');
-fprintf('MODELE DIRECTE DH vs MODELE DIRECTE MATLAB :\n');
+fprintf('MODELE DIRECT DH vs MODELE DIRECTE MATLAB :\n');
 fprintf('========================================\n');
 T_toolbox = getTransform(robot, thetai.', 'tool0');
 disp('Transformation toolbox T_base_tool0 :');
@@ -144,10 +145,10 @@ t_arc  = linspace(0, arc_angle, N_arc);
 pos_init = T06(1:3,4);
 R_const  = T06(1:3,1:3);
 
-%% Calcul de la trajectoire cartiesienne
-% On fait une decomposition de la trajectoire en N nombre des points.
-% Après, nous allons calculer les angles articulaires du robot pour chaque
-% position de la trajectoire cartesienne
+%% Calcul de la trajectoire cartesienne
+% La trajectoire cartesienne est discretisee en N points.
+% Une resolution successive de la cinematique inverse est ensuite utilisee
+% pour calculer les configurations articulaires correspondantes.
 positions = zeros(3,N);
 
 %% Trajectoire rectiligne
@@ -363,7 +364,6 @@ pe = p6;
 
 
 % Construction de la jacobienne lineaire par la methode geometrique :
-% chaque colonne j correspond a z_j x (p_e - p_j)
 Jv = [cross(z1, pe - p1), ...
       cross(z2, pe - p2), ...
       cross(z3, pe - p3), ...
@@ -543,23 +543,16 @@ disp(err_tau);
 fprintf('Erreur maximale absolue : %e\n', max(abs(err_tau)));
 
 
-%% PARTIE 4 - COMMANDE EN IMPEDANCE POUR UNE TACHE PICK & PLACE
+%% PARTIE 4 - AJOUT DU GRIPPER ET VALIDATION DYNAMIQUE PAR SUIVI CIRCULAIRE
 % ==========================================================
-
-% On implemente maintenant une commande en impedance dans l'espace
-% cartesien pour realiser une tache de pick and place. La trajectoire
-% reprend celle de la partie 1.3 (ligne droite + arc de cercle) avec
-% deux mouvements verticaux supplementaires, à savoir :
-%   - Descente en Z au point de depart (pick) et temontee en Z apres saisie
-%   - Descente en Z au point d'arrivee (place)et remontee en Z apres depot
-
-% La loi de commande en impedance impose un comportement masse-ressort-
-% amortisseur a l'effecteur (selon le cours) :
-%   M_d * (xdd - xdd_d) + B_d * (xd - xd_d) + K_d * (x - x_d) = F_ext
+% Cette partie ne correspond pas a une tache pick and place.
+% Elle sert :
+%   - a ajouter un gripper au robot ;
+%   - a generer une trajectoire circulaire desiree ;
+%   - a valider le suivi dynamique de cette trajectoire hors contact.
 
 
-
-%% PARTIE 4.1 - AJOUT D'UN OUTIL (GRIPPER) AU ROBOT
+%% 4.1 - AJOUT D'UN OUTIL (GRIPPER) AU ROBOT
 % ==========================================================
 fprintf('\n***************************************\n');
 fprintf('PARTIE 4.1 - AJOUT D''UN OUTIL (GRIPPER) AU ROBOT\n');
@@ -577,9 +570,7 @@ robot = gripper(robot, 0.12, 0.8);
 % Affichage des parametres dynamiques du modele du robot apres le gripper
 plot_details_dynamiques(robot);
 
-
-
-%% PARTIE 4.2 - GENERATION DE LA TRAJECTOIRE CIRCULAIRE DESIREE
+%% 4.2 - GENERATION DE LA TRAJECTOIRE CIRCULAIRE DESIREE
 % ==========================================================
 fprintf('\n***************************************\n');
 fprintf('PARTIE 4.2 - GENERATION DE LA TRAJECTOIRE CIRCULAIRE DESIREE\n');
@@ -606,7 +597,7 @@ fprintf('Duree totale : %.2f s | Pas de temps : %.4f s | Rayon : %.3f m\n', ...
     Tf_cercle, dt_cercle, rayon_cercle);
 
 
-%% PARTIE 4.3 - PARAMETRES DE LA COMMANDE DE SUIVI DYNAMIQUE
+%% 4.3 - PARAMETRES DE LA COMMANDE DE SUIVI DYNAMIQUE
 % ==========================================================
 fprintf('\n***************************************\n');
 fprintf('PARTIE 4.3 - PARAMETRES DE LA COMMANDE DE SUIVI DYNAMIQUE\n');
@@ -629,7 +620,7 @@ disp('Kp_task ='); disp(Kp_task);
 disp('Kd_task ='); disp(Kd_task);
 
 
-%% PARTIE 4.4 - SIMULATION DU SUIVI DYNAMIQUE DU CERCLE
+%% 4.4 - SIMULATION DU SUIVI DYNAMIQUE DU CERCLE
 % ==========================================================
 fprintf('\n***************************************\n');
 fprintf('PARTIE 4.4 - SIMULATION DU SUIVI DYNAMIQUE DU CERCLE\n');
@@ -645,7 +636,7 @@ fprintf('***************************************\n');
 fprintf('Simulation du suivi dynamique circulaire terminee.\n');
 
 
-%% PARTIE 4.5 - RESULTATS DU SUIVI DYNAMIQUE DU CERCLE
+%% 4.5 - RESULTATS DU SUIVI DYNAMIQUE DU CERCLE
 % ==========================================================
 fprintf('\n***************************************\n');
 fprintf('PARTIE 4.5 - RESULTATS DU SUIVI DYNAMIQUE DU CERCLE\n');
@@ -680,8 +671,8 @@ dt_contact = 0.002;
 q0_contact  = q_traj(1,:);
 qd0_contact = zeros(1,6);
 % Parametres geometriques de la tache
-z_offset_above_table = 0.08;   % table 10 cm sous l'outil initial
-z_penetration        = 0.001;   % l'outil veut penetrer de 1 cm
+z_offset_above_table = 0.08;   % table 8 cm sous l'outil initial
+z_penetration        = 0.001;   % l'outil veut penetrer de 1 mm
 
 [t_vec_contact, x_d_contact, xd_d_contact, xdd_d_contact, z_table] = ...
     generate_vertical_contact_trajectory(robot, q0_contact, Tf_contact, dt_contact, ...
@@ -706,7 +697,7 @@ Kd_imp = diag([0 0 120]);
 Ke_env = 200;   % N/m
 Be_env = 20;     % N.s/m
 
-% Gains auxiliaires
+% Gains auxiliaires : Gains de suivi interne dans l'espace de la tache
 Kp_task_contact = diag([50 50 120]);
 Kd_task_contact = diag([12 12 25]);
 
@@ -845,4 +836,94 @@ plot_commande_impedance_cercle_contact( ...
     q_hist_circle_contact, ...
     z_table, ...
     0.12, ...
+    Ke_env_circle, ...
     220);
+
+%% PARTIE 7 - RETRAIT VERTICAL APRES LE CERCLE SOUS CONTACT
+% ==========================================================
+fprintf('\n***************************************\n');
+fprintf('PARTIE 7 - RETRAIT VERTICAL APRES LE CERCLE SOUS CONTACT\n');
+fprintf('***************************************\n');
+
+%% 7.1 - GENERATION DE LA TRAJECTOIRE DE REMONTEE
+fprintf('\n***************************************\n');
+fprintf('PARTIE 7.1 - GENERATION DE LA TRAJECTOIRE DE REMONTEE\n');
+fprintf('***************************************\n');
+
+Tf_release = 4.0;
+dt_release = 0.002;
+
+q0_release  = q_hist_circle_contact(end,:);
+qd0_release = zeros(1,6);
+
+z_offset_release = 0.06;   % remonter a 8 cm au-dessus de la table
+
+[t_vec_release, x_d_release, xd_d_release, xdd_d_release] = ...
+    generate_release_trajectory(robot, q0_release, Tf_release, dt_release, z_table, z_offset_release);
+
+fprintf('Trajectoire de remontee generee avec succes.\n');
+
+%% 7.2 - SIMULATION DE LA REMONTEE
+fprintf('\n***************************************\n');
+fprintf('PARTIE 7.2 - SIMULATION DE LA REMONTEE\n');
+fprintf('***************************************\n');
+
+[q_hist_release, qd_hist_release, qdd_hist_release, x_hist_release, ...
+ xdot_hist_release, x_c_hist_release, err_hist_release, tau_hist_release, Fext_hist_release] = ...
+    simulate_commande_impedance_verticale( ...
+        robot, q0_release, qd0_release, ...
+        t_vec_release, x_d_release, xd_d_release, xdd_d_release, ...
+        Kp_task_contact, Kd_task_contact, ...
+        Md, Bd, Kd_imp, ...
+        z_table, Ke_env, Be_env);
+
+fprintf('Simulation de la remontee terminee.\n');
+
+
+%% PARTIE 8 - ANIMATION COMPLETE DE LA SEQUENCE
+% ==========================================================
+fprintf('\n***************************************\n');
+fprintf('PARTIE 8 - ANIMATION COMPLETE DE LA SEQUENCE\n');
+fprintf('***************************************\n');
+
+% Concatenation des trois phases :
+% 1) partie 5 : descente + contact
+% 2) partie 6 : cercle sous contact
+% 3) partie 7 : remontee
+
+q_hist_all = [ ...
+    q_hist_contact;
+    q_hist_circle_contact(2:end,:);
+    q_hist_release(2:end,:) ];
+
+x_d_all = [ ...
+    x_d_contact, ...
+    x_d_circle_contact(:,2:end), ...
+    x_d_release(:,2:end) ];
+
+x_c_all = [ ...
+    x_c_hist_contact, ...
+    x_c_hist_circle_contact(:,2:end), ...
+    x_c_hist_release(:,2:end) ];
+
+x_hist_all = [ ...
+    x_hist_contact, ...
+    x_hist_circle_contact(:,2:end), ...
+    x_hist_release(:,2:end) ];
+
+Fext_all = [ ...
+    Fext_hist_contact, ...
+    Fext_hist_circle_contact(:,2:end), ...
+    Fext_hist_release(:,2:end) ];
+
+animate_impedance_complete_sequence( ...
+    robot, ...
+    q_hist_all, ...
+    x_d_all, ...
+    x_c_all, ...
+    x_hist_all, ...
+    Fext_all, ...
+    z_table, ...
+    0.12, ...
+    Ke_env, ...
+    280);

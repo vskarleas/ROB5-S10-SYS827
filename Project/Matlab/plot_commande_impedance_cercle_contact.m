@@ -1,25 +1,49 @@
 function plot_commande_impedance_cercle_contact(robot, t_vec, x_d, x_c_hist, x_hist, err_hist, ...
                                                 tau_hist, Fext_hist, q_hist, z_table, ...
-                                                gripper_length, N_frames)
+                                                gripper_length, Ke_env_visual, N_frames)
 % plot_commande_impedance_cercle_contact affiche les resultats de la
-% commande d'impedance pour une trajectoire circulaire sous contact.
+% commande d'impedance pour une trajectoire circulaire sous contact,
+% avec une table 3D et des ressorts animes visuellement.
+%
+% Entrees :
+%   robot          : Objet RigidBodyTree
+%   t_vec          : Vecteur temps
+%   x_d            : Trajectoire desiree
+%   x_c_hist       : Trajectoire corrigee
+%   x_hist         : Trajectoire reelle
+%   err_hist       : Erreur de suivi
+%   tau_hist       : Couples articulaires
+%   Fext_hist      : Force normale de contact
+%   q_hist         : Historique articulaire
+%   z_table        : Hauteur de la table
+%   gripper_length : Longueur visuelle du gripper
+%   Ke_env_visual  : raideur utilisee pour convertir la force en compression visuelle
+%   N_frames       : nombre de frames d'animation
 
+    if nargin < 13
+        N_frames = 220;
+    end
     if nargin < 12
-        N_frames = 180;
+        Ke_env_visual = 200;
     end
 
-    % Table
-    x_table = [-0.3 0.3; -0.3 0.3];
-    y_table = [-0.3 -0.3; 0.3 0.3];
-    z_table_plot = z_table * ones(2,2);
+    % Centre visuel de la table = centre moyen de la trajectoire
+    x_center_env = mean(x_d(1,:));
+    y_center_env = mean(x_d(2,:));
+
+    % -----------------------------
+    % Parametres visuels
+    % -----------------------------
+    visual_scale = 12;      % amplifie la compression pour qu'elle soit visible
+    compression_max = 0.02; % 2 cm max visuellement
 
     %% 1) Trajectoire 3D
     figure('Name', 'Impedance cercle contact - Trajectoire 3D');
     plot3(x_d(1,:), x_d(2,:), x_d(3,:), 'r--', 'LineWidth', 2); hold on;
     plot3(x_c_hist(1,:), x_c_hist(2,:), x_c_hist(3,:), 'm-.', 'LineWidth', 1.8);
     plot3(x_hist(1,:), x_hist(2,:), x_hist(3,:), 'b-', 'LineWidth', 1.5);
-    surf(x_table, y_table, z_table_plot, ...
-        'FaceColor', [0.8 0.7 0.5], 'FaceAlpha', 0.5, 'EdgeColor', 'none');
+
+    h_env_static = draw_table_spring_environment(x_center_env, y_center_env, z_table, 0);
 
     grid on;
     axis equal;
@@ -27,7 +51,7 @@ function plot_commande_impedance_cercle_contact(robot, t_vec, x_d, x_c_hist, x_h
     ylabel('Y (m)');
     zlabel('Z (m)');
     title('Commande d''impedance - Trajectoire circulaire sous contact');
-    legend('Trajectoire desiree', 'Trajectoire corrigee', 'Trajectoire reelle', 'Table', ...
+    legend('Trajectoire desiree', 'Trajectoire corrigee', 'Trajectoire reelle', ...
            'Location', 'best');
 
     %% 2) Projection XY
@@ -117,10 +141,10 @@ function plot_commande_impedance_cercle_contact(robot, t_vec, x_d, x_c_hist, x_h
         end
     end
 
-    %% 7) Animation
+    %% 7) Animation visuelle amelioree
     id_frame = unique(round(linspace(1, size(q_hist,1), N_frames)));
 
-    figure('Name', 'Animation - Cercle sous contact');
+    figure('Name', 'Animation - Cercle sous contact avec table et ressorts');
 
     ax = show(robot, q_hist(id_frame(1),:), ...
         'Visuals', 'on', ...
@@ -129,13 +153,15 @@ function plot_commande_impedance_cercle_contact(robot, t_vec, x_d, x_c_hist, x_h
         'FastUpdate', true);
     hold on;
 
-    surf(x_table, y_table, z_table_plot, ...
-        'FaceColor', [0.8 0.7 0.5], 'FaceAlpha', 0.7, 'EdgeColor', 'none');
+    % Environnement initial
+    h_env = draw_table_spring_environment(x_center_env, y_center_env, z_table, 0);
 
+    % Trajectoires
     plot3(x_d(1,:), x_d(2,:), x_d(3,:), 'r--', 'LineWidth', 2);
     plot3(x_c_hist(1,:), x_c_hist(2,:), x_c_hist(3,:), 'm-.', 'LineWidth', 1.6);
-    traj_effecteur = animatedline('Color', 'b', 'LineWidth', 1.5);
+    traj_effecteur = animatedline('Color', 'b', 'LineWidth', 1.8);
 
+    % Gripper initial
     h_grip = draw_gripper(robot, q_hist(id_frame(1),:), gripper_length, false);
 
     title('Animation de la trajectoire circulaire sous contact');
@@ -145,13 +171,17 @@ function plot_commande_impedance_cercle_contact(robot, t_vec, x_d, x_c_hist, x_h
     grid on;
     axis equal;
     axis manual;
-    view([-45 30]);
-    xlim([-0.75 1]);
-    ylim([-0.75 1]);
+    view([-40 25]);
 
-    zmin_plot = min([z_table, min(x_hist(3,:)), min(x_c_hist(3,:)), min(x_d(3,:))]) - 0.85;
-    zmax_plot = max([max(x_hist(3,:)), max(x_c_hist(3,:)), max(x_d(3,:))]) + 0.85;
+    % Zoom plus local sur la scene
+    xlim([x_center_env - 0.90, x_center_env + 0.90]);
+    ylim([y_center_env - 0.90, y_center_env + 0.90]);
+
+    zmin_plot = z_table - 0.90;
+    zmax_plot = max([max(x_hist(3,:)), max(x_c_hist(3,:)), max(x_d(3,:))]) + 0.90;
     zlim([zmin_plot zmax_plot]);
+
+    camzoom(1.3);
 
     for i = 1:length(id_frame)
         k = id_frame(i);
@@ -164,8 +194,21 @@ function plot_commande_impedance_cercle_contact(robot, t_vec, x_d, x_c_hist, x_h
             'FastUpdate', true);
         hold on;
 
+        % Compression visuelle de la table a partir de la force de contact
+        compression = visual_scale * Fext_hist(3,k) / Ke_env_visual;
+        compression = min(compression, compression_max);
+
+        % Mise a jour environnement
+        if ~isempty(h_env)
+            valid_env = isgraphics(h_env);
+            delete(h_env(valid_env));
+        end
+        h_env = draw_table_spring_environment(x_center_env, y_center_env, z_table, compression);
+
+        % Trace de l'effecteur
         addpoints(traj_effecteur, x_hist(1,k), x_hist(2,k), x_hist(3,k));
 
+        % Mise a jour gripper
         if ~isempty(h_grip)
             for h = 1:length(h_grip)
                 if isgraphics(h_grip(h))
